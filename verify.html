@@ -1,0 +1,239 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Verify a Tambola Ticket</title>
+<style>
+  :root {
+    --bg: #f4f1ea;
+    --card-bg: #ffffff;
+    --accent: #b5537a;
+    --accent-dark: #8a3a5c;
+    --ink: #2b2b2b;
+    --border: #2b2b2b;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    min-height: 100vh;
+    background: var(--bg);
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    color: var(--ink);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 32px 16px 64px;
+  }
+  h1 {
+    margin: 0 0 4px;
+    font-size: 1.6rem;
+    color: var(--accent-dark);
+    text-align: center;
+  }
+  .subtitle {
+    margin: 0 0 24px;
+    color: #666;
+    font-size: 0.95rem;
+    text-align: center;
+  }
+  .controls {
+    display: flex;
+    gap: 12px;
+    flex-wrap: wrap;
+    justify-content: center;
+    margin-bottom: 20px;
+  }
+  input[type="text"] {
+    padding: 10px 14px;
+    border: 2px solid var(--border);
+    border-radius: 6px;
+    font-size: 0.95rem;
+    min-width: 240px;
+  }
+  button {
+    padding: 10px 18px;
+    border: none;
+    border-radius: 6px;
+    background: var(--accent);
+    color: #fff;
+    font-size: 0.95rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background 0.15s ease;
+  }
+  button:hover { background: var(--accent-dark); }
+  .status-text {
+    font-size: 0.9rem;
+    margin: -6px 0 20px;
+    text-align: center;
+    min-height: 1.2em;
+  }
+  .status-text.error { color: #b3261e; }
+  .status-text.success { color: #2e7d32; }
+
+  #result-wrapper {
+    background: var(--card-bg);
+    border: 3px solid var(--border);
+    border-radius: 10px;
+    padding: 20px 24px 24px;
+    width: 100%;
+    max-width: 620px;
+    box-shadow: 0 6px 18px rgba(0,0,0,0.12);
+  }
+  #result-wrapper.hidden { display: none; }
+  .result-header {
+    text-align: center;
+    margin-bottom: 14px;
+  }
+  .result-header .valid-badge {
+    display: inline-block;
+    background: #e8f5e9;
+    color: #2e7d32;
+    font-weight: 700;
+    font-size: 0.85rem;
+    padding: 4px 12px;
+    border-radius: 20px;
+    margin-bottom: 10px;
+  }
+  .result-header .group {
+    font-size: 1.2rem;
+    font-weight: 700;
+    color: var(--accent-dark);
+    letter-spacing: 0.5px;
+    margin-bottom: 6px;
+  }
+  .result-header .hosted-by {
+    font-size: 0.85rem;
+    color: #555;
+    margin-bottom: 6px;
+  }
+  .result-header .code {
+    font-size: 0.85rem;
+    color: #555;
+    font-family: 'Consolas', monospace;
+  }
+  .result-row {
+    display: flex;
+    justify-content: space-between;
+    margin-top: 14px;
+    font-size: 0.95rem;
+  }
+  .result-row .label { color: #888; }
+  .result-row .value { font-weight: 600; color: var(--ink); }
+  #ticketImage {
+    display: block;
+    width: 100%;
+    margin-top: 14px;
+    border-radius: 6px;
+  }
+
+  .back-link {
+    margin-top: 20px;
+    text-align: center;
+  }
+  .back-link a {
+    color: var(--accent-dark);
+    font-size: 0.9rem;
+    text-decoration: none;
+  }
+  .back-link a:hover { text-decoration: underline; }
+</style>
+</head>
+<body>
+
+  <h1>Verify a Tambola Ticket</h1>
+  <p class="subtitle">Enter the phone number used to generate the ticket</p>
+
+  <div class="controls">
+    <input type="text" id="phoneInput" placeholder="Your phone number">
+    <button id="verifyBtn">Verify</button>
+  </div>
+  <div class="status-text" id="statusText"></div>
+
+  <div id="result-wrapper" class="hidden">
+    <div class="result-header">
+      <div class="valid-badge">&#10003; Valid Ticket</div>
+      <div class="group">Beautiful Women's Group</div>
+      <div class="hosted-by">Hosted by Minali Saxena</div>
+      <div class="code" id="resultCode"></div>
+    </div>
+    <div class="result-row">
+      <span class="label">Name</span>
+      <span class="value" id="resultName"></span>
+    </div>
+    <img id="ticketImage" alt="Ticket">
+  </div>
+
+  <p class="back-link"><a href="index.html">&larr; Back to ticket generator</a></p>
+
+<script type="module">
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+  import { getFirestore, doc, getDoc } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+
+  const firebaseConfig = {
+    apiKey: "AIzaSyDcP-fFgT3abnIqN1dyELzaploiR_4Hsek",
+    authDomain: "the-better-lungs-clinic.firebaseapp.com",
+    projectId: "the-better-lungs-clinic",
+    storageBucket: "the-better-lungs-clinic.firebasestorage.app",
+    messagingSenderId: "81867392382",
+    appId: "1:81867392382:web:d6c85df1849a0a0606df2f",
+    measurementId: "G-4YKB1NDDG8"
+  };
+
+  const app = initializeApp(firebaseConfig);
+  const db = getFirestore(app);
+
+  const phoneInput = document.getElementById("phoneInput");
+  const statusText = document.getElementById("statusText");
+  const resultWrapper = document.getElementById("result-wrapper");
+
+  function normalizePhone(phone) {
+    return phone.replace(/\D/g, "");
+  }
+
+  async function verifyTicket() {
+    const phone = normalizePhone(phoneInput.value.trim());
+    resultWrapper.classList.add("hidden");
+    statusText.className = "status-text";
+    statusText.textContent = "";
+
+    if (!phone) {
+      statusText.className = "status-text error";
+      statusText.textContent = "Please enter a phone number.";
+      return;
+    }
+
+    statusText.textContent = "Checking...";
+
+    try {
+      const snap = await getDoc(doc(db, "ticketsByPhone", phone));
+      if (!snap.exists()) {
+        statusText.className = "status-text error";
+        statusText.textContent = "No ticket found for that phone number.";
+        return;
+      }
+
+      const data = snap.data();
+      document.getElementById("resultCode").textContent = `Verification Code: ${data.code}`;
+      document.getElementById("resultName").textContent = data.name;
+      document.getElementById("ticketImage").src = data.ticketImage;
+
+      statusText.className = "status-text success";
+      statusText.textContent = "";
+      resultWrapper.classList.remove("hidden");
+    } catch (err) {
+      console.error("Verification failed:", err);
+      statusText.className = "status-text error";
+      statusText.textContent = "Something went wrong while verifying. Please try again.";
+    }
+  }
+
+  document.getElementById("verifyBtn").addEventListener("click", verifyTicket);
+  phoneInput.addEventListener("keydown", e => {
+    if (e.key === "Enter") verifyTicket();
+  });
+</script>
+
+</body>
+</html>

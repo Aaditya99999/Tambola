@@ -1,0 +1,30 @@
+rules_version = '2';
+
+service firebase.storage {
+  match /b/{bucket}/o {
+    function isClinic(clinicId) {
+      return clinicId in ['kid', 'lungs'];
+    }
+
+    match /clinics/{clinicId}/{allPaths=**} {
+      allow read, write: if isClinic(clinicId);
+    }
+
+    // --- Tambola Ticket Generator ---
+    match /tickets/{fileName} {
+      // Keyed by verification code (tickets/{code}.png), so a client must
+      // already know the exact filename to fetch it (allow get, not list).
+      // Anyone can upload their own generated ticket PNG (max 2MB), but
+      // nobody can browse, overwrite, or delete existing tickets.
+      allow get: if true;
+      allow list, delete: if false;
+      allow write: if request.resource.size < 2 * 1024 * 1024
+                   && request.resource.contentType.matches('image/png');
+    }
+    // --- end Tambola Ticket Generator ---
+
+    match /{allPaths=**} {
+      allow read, write: if false;
+    }
+  }
+}

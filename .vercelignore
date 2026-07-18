@@ -1,0 +1,8 @@
+.firebaserc
+firebase.json
+firestore.rules
+firestore.indexes.json
+storage.rules
+tambola_ticket.py
+README.md
+.claude

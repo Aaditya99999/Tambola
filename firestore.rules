@@ -1,0 +1,67 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function isClinic(clinicId) {
+      return clinicId in ['kid', 'lungs'];
+    }
+
+    match /clinics/{clinicId} {
+      allow read, write: if isClinic(clinicId);
+    }
+
+    match /clinics/{clinicId}/{document=**} {
+      allow read, write: if isClinic(clinicId);
+    }
+
+    match /clinicSettings/{settingId} {
+      allow read, write: if settingId in ['kid', 'lungs'];
+    }
+
+    // --- Tambola Ticket Generator ---
+    match /tickets/{ticketId} {
+      // Ticket documents are keyed by their verification code, so a client
+      // must already know the exact code to fetch one (allow get, not list).
+      allow get: if true;
+      allow list, update, delete: if false;
+
+      allow create: if ticketId == request.resource.data.code
+                    && request.resource.data.keys().hasAll(['name', 'phone', 'code', 'createdAt', 'ticketImage'])
+                    && request.resource.data.name is string
+                    && request.resource.data.name.size() > 0
+                    && request.resource.data.name.size() < 100
+                    && request.resource.data.phone is string
+                    && request.resource.data.phone.size() < 30
+                    && request.resource.data.code is string
+                    && request.resource.data.ticketImage is string
+                    && request.resource.data.ticketImage.size() < 900000;
+    }
+
+    match /ticketsByPhone/{phoneId} {
+      // Keyed by normalized phone number so the verify page can look a
+      // ticket up by phone with a direct get (list stays denied). Only a
+      // single create is ever allowed per phone number -- no update means
+      // one phone number can never overwrite/replace an existing ticket,
+      // enforcing "one ticket per phone" even against a direct API call.
+      allow get: if true;
+      allow list, update, delete: if false;
+
+      allow create: if !exists(/databases/$(database)/documents/ticketsByPhone/$(phoneId))
+                    && phoneId == request.resource.data.phone
+                    && request.resource.data.keys().hasAll(['name', 'phone', 'code', 'createdAt', 'ticketImage'])
+                    && request.resource.data.name is string
+                    && request.resource.data.name.size() > 0
+                    && request.resource.data.name.size() < 100
+                    && request.resource.data.phone is string
+                    && request.resource.data.phone.size() < 30
+                    && request.resource.data.code is string
+                    && request.resource.data.ticketImage is string
+                    && request.resource.data.ticketImage.size() < 900000;
+    }
+    // --- end Tambola Ticket Generator ---
+
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}

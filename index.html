@@ -83,18 +83,46 @@
     text-align: center;
     margin-bottom: 14px;
   }
-  .ticket-header .host {
+  .ticket-header .group {
     font-size: 1.2rem;
     font-weight: 700;
     color: var(--accent-dark);
     letter-spacing: 0.5px;
+    margin-bottom: 6px;
+  }
+  .ticket-header .hosted-by {
+    font-size: 0.85rem;
+    color: #555;
+    margin-bottom: 6px;
   }
   .ticket-header .code {
-    margin-top: 4px;
     font-size: 0.85rem;
     color: #555;
     font-family: 'Consolas', monospace;
   }
+  .ticket-footer {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    margin-top: 12px;
+  }
+  .ticket-footer .phone {
+    font-size: 0.9rem;
+    color: #555;
+  }
+  .ticket-footer .host {
+    font-size: 0.9rem;
+    font-weight: 400;
+    color: #555;
+  }
+  .error-text {
+    color: #b3261e;
+    font-size: 0.85rem;
+    margin: -18px 0 20px;
+    text-align: center;
+    min-height: 1.1em;
+  }
+  #ticket-wrapper.hidden { display: none; }
   table.tambola {
     border-collapse: collapse;
     width: 100%;
@@ -118,32 +146,45 @@
     color: #888;
   }
 
-  @media print {
-    body { background: #fff; padding: 0; }
-    .controls { display: none; }
-    #ticket-wrapper { box-shadow: none; border: 2px solid #000; }
+  .verify-link {
+    margin-top: 20px;
+    text-align: center;
   }
+  .verify-link a {
+    color: var(--accent-dark);
+    font-size: 0.9rem;
+    text-decoration: none;
+  }
+  .verify-link a:hover { text-decoration: underline; }
+
 </style>
 </head>
 <body>
 
   <h1>Tambola Ticket Generator</h1>
-  <p class="subtitle">Generate a valid single Tambola / Housie ticket</p>
+  <p class="subtitle">Generate your Tambola ticket</p>
 
   <div class="controls">
-    <input type="text" id="hostName" value="Beautiful Women's Group" placeholder="Host name">
-    <button id="generateBtn">Generate Ticket</button>
-    <button id="printBtn" class="secondary">Print</button>
+    <input type="text" id="playerName" placeholder="Your name">
+    <input type="text" id="playerPhone" placeholder="Your phone number">
+    <button id="generateBtn">Generate My Ticket</button>
+    <button id="downloadBtn" class="secondary">Download</button>
   </div>
+  <div class="error-text" id="errorText"></div>
 
-  <div id="ticket-wrapper">
+  <div id="ticket-wrapper" class="hidden">
     <div class="ticket-header">
-      <div class="host" id="hostDisplay"></div>
+      <div class="group">Beautiful Women's Group</div>
+      <div class="hosted-by">Hosted by Minali Saxena</div>
       <div class="code" id="codeDisplay"></div>
     </div>
     <table class="tambola" id="ticketTable"></table>
-    <div class="footer-note">Each ticket has 15 numbers across 3 rows &amp; 9 columns. Keep the verification code for authenticity checks.</div>
+    <div class="ticket-footer">
+      <div class="host" id="hostDisplay"></div>
+    </div>
   </div>
+
+  <p class="verify-link"><a href="verify.html">Verify a ticket &rarr;</a></p>
 
 <script>
   // Column ranges: col0 -> 1-9, col1 -> 10-19, ..., col8 -> 80-90
@@ -215,12 +256,33 @@
     return `${datePart}-${randomPart}`;
   }
 
+  let lastTicket = null;
+
   function renderTicket() {
-    const hostName = document.getElementById("hostName").value.trim() || "Tambola Host";
+    const errorText = document.getElementById("errorText");
+    const wrapper = document.getElementById("ticket-wrapper");
+    const name = document.getElementById("playerName").value.trim();
+    const phone = document.getElementById("playerPhone").value.trim();
+
+    if (!name) {
+      errorText.textContent = "Please enter your name.";
+      wrapper.classList.add("hidden");
+      lastTicket = null;
+      return false;
+    }
+    if (!/^[0-9+\-\s()]{7,15}$/.test(phone)) {
+      errorText.textContent = "Please enter a valid phone number.";
+      wrapper.classList.add("hidden");
+      lastTicket = null;
+      return false;
+    }
+    errorText.textContent = "";
+
     const grid = generateTicket();
     const code = generateVerificationCode();
+    lastTicket = { name, phone, code, grid };
 
-    document.getElementById("hostDisplay").textContent = hostName;
+    document.getElementById("hostDisplay").textContent = name;
     document.getElementById("codeDisplay").textContent = `Verification Code: ${code}`;
 
     const table = document.getElementById("ticketTable");
@@ -239,12 +301,188 @@
       });
       table.appendChild(tr);
     });
+
+    wrapper.classList.remove("hidden");
+    return true;
   }
 
-  document.getElementById("generateBtn").addEventListener("click", renderTicket);
-  document.getElementById("printBtn").addEventListener("click", () => window.print());
+  function buildTicketCanvas(ticket) {
+    const { name, code, grid } = ticket;
+    const scale = 2;
+    const width = 620, height = 296;
+    const canvas = document.createElement("canvas");
+    canvas.width = width * scale;
+    canvas.height = height * scale;
+    const ctx = canvas.getContext("2d");
+    ctx.scale(scale, scale);
 
-  renderTicket();
+    // Card background & border
+    ctx.fillStyle = "#ffffff";
+    ctx.fillRect(0, 0, width, height);
+    ctx.strokeStyle = "#2b2b2b";
+    ctx.lineWidth = 3;
+    ctx.strokeRect(1.5, 1.5, width - 3, height - 3);
+
+    // Header text
+    ctx.textAlign = "center";
+    ctx.fillStyle = "#8a3a5c";
+    ctx.font = "bold 22px 'Segoe UI', Tahoma, sans-serif";
+    ctx.fillText("Beautiful Women's Group", width / 2, 38);
+
+    ctx.fillStyle = "#555555";
+    ctx.font = "14px 'Segoe UI', Tahoma, sans-serif";
+    ctx.fillText("Hosted by Minali Saxena", width / 2, 58);
+
+    ctx.font = "13px Consolas, monospace";
+    ctx.fillText(`Verification Code: ${code}`, width / 2, 80);
+
+    // Table grid
+    const tableTop = 100;
+    const tableLeft = 20;
+    const tableWidth = width - 40;
+    const rows = 3, cols = 9;
+    const cellW = tableWidth / cols;
+    const cellH = 48;
+
+    for (let r = 0; r < rows; r++) {
+      for (let c = 0; c < cols; c++) {
+        const x = tableLeft + c * cellW;
+        const y = tableTop + r * cellH;
+        const value = grid[r][c];
+        ctx.fillStyle = value === "" ? "#f0ede6" : "#fdf1f4";
+        ctx.fillRect(x, y, cellW, cellH);
+        ctx.strokeStyle = "#2b2b2b";
+        ctx.lineWidth = 2;
+        ctx.strokeRect(x, y, cellW, cellH);
+        if (value !== "") {
+          ctx.fillStyle = "#8a3a5c";
+          ctx.font = "bold 18px 'Segoe UI', Tahoma, sans-serif";
+          ctx.fillText(String(value), x + cellW / 2, y + cellH / 2 + 6);
+        }
+      }
+    }
+
+    // Footer: name, bottom-left
+    ctx.fillStyle = "#555555";
+    ctx.font = "15px 'Segoe UI', Tahoma, sans-serif";
+    ctx.textAlign = "left";
+    ctx.fillText(name, tableLeft, tableTop + rows * cellH + 26);
+
+    return canvas;
+  }
+
+  function downloadTicketAsPng() {
+    if (!lastTicket) {
+      document.getElementById("errorText").textContent = "Generate your ticket first.";
+      return;
+    }
+
+    const { name, code } = lastTicket;
+    const canvas = buildTicketCanvas(lastTicket);
+
+    canvas.toBlob(blob => {
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = `tambola-ticket-${name.replace(/\s+/g, "_")}-${code}.png`;
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      URL.revokeObjectURL(url);
+    }, "image/png");
+  }
+
+  document.getElementById("generateBtn").addEventListener("click", async () => {
+    const errorText = document.getElementById("errorText");
+    const wrapper = document.getElementById("ticket-wrapper");
+    const name = document.getElementById("playerName").value.trim();
+    const phone = document.getElementById("playerPhone").value.trim();
+
+    if (!name) {
+      errorText.textContent = "Please enter your name.";
+      wrapper.classList.add("hidden");
+      return;
+    }
+    if (!/^[0-9+\-\s()]{7,15}$/.test(phone)) {
+      errorText.textContent = "Please enter a valid phone number.";
+      wrapper.classList.add("hidden");
+      return;
+    }
+
+    errorText.textContent = "Checking phone number...";
+    let alreadyUsed = false;
+    try {
+      alreadyUsed = await window.checkPhoneHasTicket(phone);
+    } catch (err) {
+      console.error("Failed to check existing ticket:", err);
+      errorText.textContent = "Could not verify phone number right now. Please try again.";
+      return;
+    }
+    if (alreadyUsed) {
+      errorText.textContent = "This phone number has already generated a ticket. Use \"Verify a ticket\" to view it.";
+      wrapper.classList.add("hidden");
+      lastTicket = null;
+      return;
+    }
+
+    if (!renderTicket()) return;
+    const canvas = buildTicketCanvas(lastTicket);
+    const pngBlob = await new Promise(resolve => canvas.toBlob(resolve, "image/png"));
+    try {
+      await window.saveTicketToFirebase(lastTicket, pngBlob);
+    } catch (err) {
+      console.error("Failed to save ticket to Firebase:", err);
+      errorText.textContent = "Ticket generated, but saving failed. You can still download it.";
+    }
+  });
+  document.getElementById("downloadBtn").addEventListener("click", downloadTicketAsPng);
+</script>
+
+<script type="module">
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+  import { getFirestore, doc, setDoc, getDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+  import { getStorage, ref, uploadBytes, getDownloadURL } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-storage.js";
+
+  const firebaseConfig = {
+    apiKey: "AIzaSyDcP-fFgT3abnIqN1dyELzaploiR_4Hsek",
+    authDomain: "the-better-lungs-clinic.firebaseapp.com",
+    projectId: "the-better-lungs-clinic",
+    storageBucket: "the-better-lungs-clinic.firebasestorage.app",
+    messagingSenderId: "81867392382",
+    appId: "1:81867392382:web:d6c85df1849a0a0606df2f",
+    measurementId: "G-4YKB1NDDG8"
+  };
+
+  const app = initializeApp(firebaseConfig);
+  const db = getFirestore(app);
+  const storage = getStorage(app);
+
+  function normalizePhone(phone) {
+    return phone.replace(/\D/g, "");
+  }
+
+  window.checkPhoneHasTicket = async function (phone) {
+    const snap = await getDoc(doc(db, "ticketsByPhone", normalizePhone(phone)));
+    return snap.exists();
+  };
+
+  window.saveTicketToFirebase = async function (ticket, pngBlob) {
+    const normalizedPhone = normalizePhone(ticket.phone);
+
+    const storageRef = ref(storage, `tickets/${ticket.code}.png`);
+    await uploadBytes(storageRef, pngBlob, { contentType: "image/png" });
+    const ticketImageUrl = await getDownloadURL(storageRef);
+
+    const record = {
+      name: ticket.name,
+      phone: normalizedPhone,
+      code: ticket.code,
+      createdAt: serverTimestamp(),
+      ticketImage: ticketImageUrl
+    };
+    await setDoc(doc(db, "tickets", ticket.code), record);
+    await setDoc(doc(db, "ticketsByPhone", normalizedPhone), record);
+  };
 </script>
 
 </body>
