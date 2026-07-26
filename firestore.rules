@@ -58,6 +58,15 @@ service cloud.firestore {
                     && request.resource.data.ticketImage is string
                     && request.resource.data.ticketImage.size() < 900000;
     }
+    match /meta/stats {
+      // Public vanity counter of how many tickets have been generated.
+      // Only the single 'ticketsGenerated' integer field is ever allowed,
+      // so this doc can't be used to smuggle other data.
+      allow get: if true;
+      allow list, delete: if false;
+      allow create, update: if request.resource.data.keys().hasOnly(['ticketsGenerated'])
+                            && request.resource.data.ticketsGenerated is int;
+    }
     // --- end Tambola Ticket Generator ---
 
     match /{document=**} {

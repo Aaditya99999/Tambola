@@ -480,7 +480,7 @@
 
 <script type="module">
   import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
-  import { getFirestore, doc, setDoc, getDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+  import { getFirestore, doc, setDoc, getDoc, serverTimestamp, increment } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
   import { getStorage, ref, uploadBytes, getDownloadURL } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-storage.js";
 
   const firebaseConfig = {
@@ -522,6 +522,9 @@
     };
     await setDoc(doc(db, "tickets", ticket.code), record);
     await setDoc(doc(db, "ticketsByPhone", normalizedPhone), record);
+    // meta/stats.ticketsGenerated was seeded to only count tickets from
+    // 26 July 2026 onward (earlier test tickets are excluded from the tally).
+    await setDoc(doc(db, "meta", "stats"), { ticketsGenerated: increment(1) }, { merge: true });
   };
 </script>
 
