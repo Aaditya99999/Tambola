@@ -23,8 +23,21 @@
     display: flex;
     flex-direction: column;
     align-items: center;
-    padding: 32px 16px 64px;
+    padding: 0 16px 64px;
   }
+  nav.site-nav {
+    width: 100%;
+    max-width: 620px;
+    padding: 16px 0;
+    margin-bottom: 16px;
+  }
+  nav.site-nav a {
+    color: var(--accent-dark);
+    font-weight: 600;
+    font-size: 0.95rem;
+    text-decoration: none;
+  }
+  nav.site-nav a:hover { text-decoration: underline; }
   h1 {
     margin: 0 0 4px;
     font-size: 1.6rem;
@@ -149,6 +162,10 @@
 </style>
 </head>
 <body>
+
+  <nav class="site-nav">
+    <a href="https://aadityabhatnagar.online" target="_blank" rel="noopener">Ab Labs (Aaditya)</a>
+  </nav>
 
   <h1>Tambola Ticket Generator</h1>
   <p class="subtitle">Generate your Tambola ticket</p>
