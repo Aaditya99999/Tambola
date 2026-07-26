@@ -58,6 +58,25 @@ service cloud.firestore {
                     && request.resource.data.ticketImage is string
                     && request.resource.data.ticketImage.size() < 900000;
     }
+    match /ticketsByName/{nameKey} {
+      // Keyed by a normalized name so the verify page can look tickets up
+      // by name alone (list stays denied to prevent browsing). Names
+      // aren't unique, so each doc holds an append-only array of ticket
+      // codes registered under that name -- writes may only grow the
+      // array by exactly one entry at a time, never replace or shrink it.
+      allow get: if true;
+      allow list, delete: if false;
+
+      allow create: if request.resource.data.keys().hasOnly(['codes'])
+                    && request.resource.data.codes is list
+                    && request.resource.data.codes.size() == 1
+                    && request.resource.data.codes[0] is string;
+
+      allow update: if request.resource.data.keys().hasOnly(['codes'])
+                    && request.resource.data.codes is list
+                    && request.resource.data.codes.size() == resource.data.codes.size() + 1
+                    && request.resource.data.codes[resource.data.codes.size()] is string;
+    }
     match /meta/stats {
       // Public vanity counter of how many tickets have been generated.
       // Only the single 'ticketsGenerated' integer field is ever allowed,
