@@ -20,24 +20,42 @@
     background: var(--bg);
     font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
     color: var(--ink);
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    padding: 0 16px 64px;
   }
   nav.site-nav {
     width: 100%;
+    background: #ffffff;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.06);
+  }
+  nav.site-nav .site-nav-inner {
     max-width: 620px;
-    padding: 16px 0;
-    margin-bottom: 16px;
+    margin: 0 auto;
+    padding: 12px 16px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  nav.site-nav img {
+    height: 28px;
+    width: 28px;
+    border-radius: 6px;
+    display: block;
   }
   nav.site-nav a {
-    color: var(--accent-dark);
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    color: #000000;
     font-weight: 600;
     font-size: 0.95rem;
     text-decoration: none;
   }
   nav.site-nav a:hover { text-decoration: underline; }
+  .page {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 32px 16px 64px;
+  }
   h1 {
     margin: 0 0 4px;
     font-size: 1.6rem;
@@ -45,10 +63,13 @@
     text-align: center;
   }
   .subtitle {
-    margin: 0 0 24px;
+    margin: 0 0 4px;
     color: #666;
     font-size: 0.95rem;
     text-align: center;
+  }
+  .subtitle:last-of-type {
+    margin-bottom: 24px;
   }
   .controls {
     display: flex;
@@ -164,29 +185,37 @@
 <body>
 
   <nav class="site-nav">
-    <a href="https://aadityabhatnagar.online" target="_blank" rel="noopener">Ab Labs (Aaditya)</a>
+    <div class="site-nav-inner">
+      <a href="https://aadityabhatnagar.online" target="_blank" rel="noopener">
+        <img src="logo.png" alt="Ab Labs logo">
+        Ab Labs (Aaditya)
+      </a>
+    </div>
   </nav>
 
-  <h1>Tambola Ticket Generator</h1>
-  <p class="subtitle">Generate your Tambola ticket</p>
+  <div class="page">
+    <h1>Tambola Ticket Generator</h1>
+    <p class="subtitle">Generate your Tambola ticket</p>
+    <p class="subtitle">Minali Saxena (BWG)</p>
 
-  <div class="controls">
-    <input type="text" id="playerName" placeholder="Your name">
-    <input type="text" id="playerPhone" placeholder="Your phone number">
-    <button id="generateBtn">Generate My Ticket</button>
-    <button id="downloadBtn" class="secondary">Download</button>
-  </div>
-  <div class="error-text" id="errorText"></div>
-
-  <div id="ticket-wrapper" class="hidden">
-    <div class="ticket-header">
-      <div class="group">Beautiful Women's Group</div>
-      <div class="hosted-by">Hosted by Minali Saxena</div>
-      <div class="code" id="codeDisplay"></div>
+    <div class="controls">
+      <input type="text" id="playerName" placeholder="Your name">
+      <input type="text" id="playerPhone" placeholder="Your phone number">
+      <button id="generateBtn">Generate My Ticket</button>
+      <button id="downloadBtn" class="secondary">Download</button>
     </div>
-    <table class="tambola" id="ticketTable"></table>
-    <div class="ticket-footer">
-      <div class="host" id="hostDisplay"></div>
+    <div class="error-text" id="errorText"></div>
+
+    <div id="ticket-wrapper" class="hidden">
+      <div class="ticket-header">
+        <div class="group">Beautiful Women's Group</div>
+        <div class="hosted-by">Hosted by Minali Saxena</div>
+        <div class="code" id="codeDisplay"></div>
+      </div>
+      <table class="tambola" id="ticketTable"></table>
+      <div class="ticket-footer">
+        <div class="host" id="hostDisplay"></div>
+      </div>
     </div>
   </div>
 
@@ -262,6 +291,13 @@
 
   let lastTicket = null;
 
+  function isValidIndianPhone(phone) {
+    let digits = phone.replace(/\D/g, "");
+    if (digits.length === 12 && digits.startsWith("91")) digits = digits.slice(2);
+    else if (digits.length === 11 && digits.startsWith("0")) digits = digits.slice(1);
+    return /^[6-9]\d{9}$/.test(digits);
+  }
+
   function renderTicket() {
     const errorText = document.getElementById("errorText");
     const wrapper = document.getElementById("ticket-wrapper");
@@ -274,8 +310,8 @@
       lastTicket = null;
       return false;
     }
-    if (!/^[0-9+\-\s()]{7,15}$/.test(phone)) {
-      errorText.textContent = "Please enter a valid phone number.";
+    if (!isValidIndianPhone(phone)) {
+      errorText.textContent = "Please enter a valid 10-digit Indian phone number.";
       wrapper.classList.add("hidden");
       lastTicket = null;
       return false;
@@ -407,8 +443,8 @@
       wrapper.classList.add("hidden");
       return;
     }
-    if (!/^[0-9+\-\s()]{7,15}$/.test(phone)) {
-      errorText.textContent = "Please enter a valid phone number.";
+    if (!isValidIndianPhone(phone)) {
+      errorText.textContent = "Please enter a valid 10-digit Indian phone number.";
       wrapper.classList.add("hidden");
       return;
     }
