@@ -1,0 +1,477 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Tambola Number Picker</title>
+<style>
+  :root {
+    --green: #9bce9b;
+    --green-dark: #7fb87f;
+    --green-called: #4f8f4f;
+    --ink: #1a1a1a;
+    --bg: #ffffff;
+    --teal: #0d8a7a;
+    --gray: #888;
+  }
+  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  body {
+    margin: 0;
+    background: var(--bg);
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    color: var(--ink);
+    padding: 14px;
+  }
+  .layout {
+    display: flex;
+    gap: 20px;
+    max-width: 1200px;
+    margin: 0 auto;
+    flex-wrap: wrap;
+  }
+  .grid {
+    flex: 3 1 560px;
+    display: grid;
+    grid-template-columns: repeat(10, 1fr);
+    gap: 8px;
+    align-content: start;
+  }
+  .cell {
+    background: var(--green);
+    border: none;
+    border-radius: 999px;
+    padding: 14px 0;
+    text-align: center;
+    font-size: 1.15rem;
+    font-weight: 700;
+    color: var(--ink);
+    cursor: pointer;
+    user-select: none;
+    transition: background 0.2s, transform 0.15s, opacity 0.2s;
+  }
+  .cell.called {
+    background: var(--green-called);
+    color: #eafcea;
+    opacity: 0.85;
+  }
+  .cell.flash {
+    transform: scale(1.12);
+    background: var(--teal);
+    color: #fff;
+  }
+  .side {
+    flex: 1 1 260px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    min-width: 240px;
+  }
+  .row {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+  }
+  select {
+    flex: 1;
+    background: #e9f5e9;
+    border: 1px solid var(--green-dark);
+    border-radius: 10px;
+    padding: 12px 10px;
+    font-size: 1rem;
+    font-weight: 600;
+    color: var(--ink);
+  }
+  .switch {
+    position: relative;
+    width: 46px;
+    height: 26px;
+    flex: 0 0 auto;
+    background: #c9e6c2;
+    border-radius: 999px;
+    cursor: pointer;
+    transition: background 0.2s;
+  }
+  .switch.on { background: var(--teal); }
+  .switch::after {
+    content: '';
+    position: absolute;
+    top: 3px; left: 3px;
+    width: 20px; height: 20px;
+    border-radius: 50%;
+    background: #fff;
+    transition: left 0.2s;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.3);
+  }
+  .switch.on::after { left: 23px; }
+  .icon-btn {
+    flex: 0 0 auto;
+    width: 42px;
+    height: 42px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: none;
+    border: 1px solid var(--ink);
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 1.1rem;
+  }
+  .btn {
+    background: var(--green);
+    border: none;
+    border-radius: 10px;
+    padding: 14px 10px;
+    font-size: 1rem;
+    font-weight: 700;
+    color: var(--ink);
+    cursor: pointer;
+    text-align: center;
+    flex: 1;
+    transition: background 0.15s;
+  }
+  .btn:active { background: var(--green-dark); }
+  .btn.big {
+    padding: 18px 10px;
+    font-size: 1.3rem;
+  }
+  .btn.active {
+    background: var(--teal);
+    color: #fff;
+  }
+  .circle-wrap {
+    display: flex;
+    justify-content: center;
+    margin: 6px 0;
+  }
+  .circle {
+    width: 150px;
+    height: 150px;
+    border-radius: 50%;
+    background: var(--green);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 3rem;
+    font-weight: 800;
+    color: var(--ink);
+    transition: background 0.2s, transform 0.15s;
+  }
+  .circle.pulse { transform: scale(1.05); background: var(--teal); color: #fff; }
+  .status {
+    text-align: center;
+    color: var(--gray);
+    font-size: 0.85rem;
+    margin-top: -4px;
+  }
+  .history-panel {
+    display: none;
+    flex-wrap: wrap;
+    gap: 6px;
+    background: #f4faf4;
+    border: 1px solid var(--green-dark);
+    border-radius: 10px;
+    padding: 10px;
+    max-height: 220px;
+    overflow-y: auto;
+  }
+  .history-panel.open { display: flex; }
+  .history-panel span {
+    background: var(--green);
+    border-radius: 999px;
+    padding: 4px 10px;
+    font-weight: 700;
+    font-size: 0.9rem;
+  }
+  .history-panel .empty {
+    color: var(--gray);
+    font-weight: 400;
+    padding: 4px;
+  }
+  @media (max-width: 700px) {
+    .cell { font-size: 0.95rem; padding: 11px 0; }
+    .grid { gap: 6px; }
+  }
+</style>
+</head>
+<body>
+
+<div class="layout">
+  <div class="grid" id="grid"></div>
+
+  <div class="side">
+    <div class="row">
+      <select id="voiceSelect"></select>
+      <div class="switch on" id="voiceToggle" title="Toggle voice announcement"></div>
+      <button class="icon-btn" id="shareBtn" title="Share called numbers">&#8679;</button>
+    </div>
+
+    <div class="row">
+      <button class="btn" id="autoBtn">Auto</button>
+      <button class="btn" id="speedBtn">Speed 3s</button>
+    </div>
+
+    <button class="btn" id="resetBtn">Reset</button>
+
+    <div class="circle-wrap">
+      <div class="circle" id="circle">-</div>
+    </div>
+    <div class="status" id="status">0 / 90 called</div>
+
+    <button class="btn big" id="generateBtn">Generate</button>
+    <button class="btn" id="historyBtn">History</button>
+
+    <div class="history-panel" id="historyPanel"></div>
+  </div>
+</div>
+
+<script>
+const STORAGE_KEY = 'tambolaPickerState';
+const SPEEDS = [3, 5, 10, 15];
+
+let state = {
+  called: [],
+  voiceEnabled: true,
+  speedIndex: 0,
+  voiceURI: null
+};
+
+function loadState() {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if (raw) {
+      const parsed = JSON.parse(raw);
+      state = Object.assign(state, parsed);
+    }
+  } catch (e) { /* ignore corrupt state */ }
+}
+
+function saveState() {
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+}
+
+const grid = document.getElementById('grid');
+const circle = document.getElementById('circle');
+const statusEl = document.getElementById('status');
+const generateBtn = document.getElementById('generateBtn');
+const resetBtn = document.getElementById('resetBtn');
+const autoBtn = document.getElementById('autoBtn');
+const speedBtn = document.getElementById('speedBtn');
+const voiceToggle = document.getElementById('voiceToggle');
+const voiceSelect = document.getElementById('voiceSelect');
+const historyBtn = document.getElementById('historyBtn');
+const historyPanel = document.getElementById('historyPanel');
+const shareBtn = document.getElementById('shareBtn');
+
+let autoTimer = null;
+
+function buildGrid() {
+  grid.innerHTML = '';
+  for (let n = 1; n <= 90; n++) {
+    const cell = document.createElement('div');
+    cell.className = 'cell';
+    cell.textContent = n;
+    cell.dataset.num = n;
+    grid.appendChild(cell);
+  }
+}
+
+function renderCalled() {
+  document.querySelectorAll('.cell').forEach(cell => {
+    const n = Number(cell.dataset.num);
+    cell.classList.toggle('called', state.called.includes(n));
+  });
+  statusEl.textContent = `${state.called.length} / 90 called`;
+  const last = state.called[state.called.length - 1];
+  circle.textContent = last ? last : '-';
+}
+
+function renderHistory() {
+  if (state.called.length === 0) {
+    historyPanel.innerHTML = '<span class="empty">No numbers called yet</span>';
+    return;
+  }
+  historyPanel.innerHTML = state.called.map(n => `<span>${n}</span>`).join('');
+}
+
+function renderVoiceToggle() {
+  voiceToggle.classList.toggle('on', state.voiceEnabled);
+}
+
+function renderSpeedBtn() {
+  speedBtn.textContent = `Speed ${SPEEDS[state.speedIndex]}s`;
+}
+
+function flashCell(n) {
+  const cell = grid.querySelector(`.cell[data-num="${n}"]`);
+  if (!cell) return;
+  cell.classList.add('flash');
+  setTimeout(() => cell.classList.remove('flash'), 400);
+}
+
+function pulseCircle() {
+  circle.classList.add('pulse');
+  setTimeout(() => circle.classList.remove('pulse'), 400);
+}
+
+function speak(n) {
+  if (!state.voiceEnabled) return;
+  if (!('speechSynthesis' in window)) return;
+  window.speechSynthesis.cancel();
+  const utter = new SpeechSynthesisUtterance(String(n));
+  const voices = window.speechSynthesis.getVoices();
+  const chosen = voices.find(v => v.voiceURI === state.voiceURI);
+  if (chosen) utter.voice = chosen;
+  window.speechSynthesis.speak(utter);
+}
+
+function generateNumber() {
+  if (state.called.length >= 90) {
+    stopAuto();
+    return;
+  }
+  const remaining = [];
+  for (let n = 1; n <= 90; n++) {
+    if (!state.called.includes(n)) remaining.push(n);
+  }
+  const pick = remaining[Math.floor(Math.random() * remaining.length)];
+  state.called.push(pick);
+  saveState();
+  renderCalled();
+  renderHistory();
+  flashCell(pick);
+  pulseCircle();
+  speak(pick);
+
+  if (state.called.length >= 90) {
+    stopAuto();
+  }
+}
+
+function startAuto() {
+  autoBtn.textContent = 'Stop';
+  autoBtn.classList.add('active');
+  generateNumber();
+  autoTimer = setInterval(generateNumber, SPEEDS[state.speedIndex] * 1000);
+}
+
+function stopAuto() {
+  clearInterval(autoTimer);
+  autoTimer = null;
+  autoBtn.textContent = 'Auto';
+  autoBtn.classList.remove('active');
+}
+
+function populateVoices() {
+  if (!('speechSynthesis' in window)) return;
+  const voices = window.speechSynthesis.getVoices();
+  if (!voices.length) return;
+  const englishVoices = voices.filter(v => v.lang && v.lang.toLowerCase().startsWith('en'));
+  const list = englishVoices.length ? englishVoices : voices;
+  voiceSelect.innerHTML = list.map(v =>
+    `<option value="${v.voiceURI}">${v.name} (${v.lang})</option>`
+  ).join('');
+  if (state.voiceURI && list.some(v => v.voiceURI === state.voiceURI)) {
+    voiceSelect.value = state.voiceURI;
+  } else {
+    state.voiceURI = list[0].voiceURI;
+    voiceSelect.value = state.voiceURI;
+    saveState();
+  }
+}
+
+grid.addEventListener('click', (e) => {
+  const cell = e.target.closest('.cell');
+  if (!cell) return;
+  const n = Number(cell.dataset.num);
+  const idx = state.called.indexOf(n);
+  if (idx !== -1) {
+    state.called.splice(idx, 1);
+    saveState();
+    renderCalled();
+    renderHistory();
+    return;
+  }
+  state.called.push(n);
+  saveState();
+  renderCalled();
+  renderHistory();
+  flashCell(n);
+  pulseCircle();
+  speak(n);
+});
+
+generateBtn.addEventListener('click', generateNumber);
+
+resetBtn.addEventListener('click', () => {
+  if (!confirm('Reset and clear all called numbers?')) return;
+  stopAuto();
+  state.called = [];
+  saveState();
+  renderCalled();
+  renderHistory();
+});
+
+autoBtn.addEventListener('click', () => {
+  if (autoTimer) {
+    stopAuto();
+  } else {
+    startAuto();
+  }
+});
+
+speedBtn.addEventListener('click', () => {
+  state.speedIndex = (state.speedIndex + 1) % SPEEDS.length;
+  saveState();
+  renderSpeedBtn();
+  if (autoTimer) {
+    clearInterval(autoTimer);
+    autoTimer = setInterval(generateNumber, SPEEDS[state.speedIndex] * 1000);
+  }
+});
+
+voiceToggle.addEventListener('click', () => {
+  state.voiceEnabled = !state.voiceEnabled;
+  saveState();
+  renderVoiceToggle();
+});
+
+voiceSelect.addEventListener('change', () => {
+  state.voiceURI = voiceSelect.value;
+  saveState();
+});
+
+historyBtn.addEventListener('click', () => {
+  historyPanel.classList.toggle('open');
+  renderHistory();
+});
+
+shareBtn.addEventListener('click', async () => {
+  const text = state.called.length
+    ? `Tambola numbers called (${state.called.length}/90): ${state.called.join(', ')}`
+    : 'No tambola numbers called yet.';
+  if (navigator.share) {
+    try { await navigator.share({ text }); } catch (e) { /* user cancelled */ }
+  } else {
+    try {
+      await navigator.clipboard.writeText(text);
+      alert('Copied called numbers to clipboard.');
+    } catch (e) {
+      alert(text);
+    }
+  }
+});
+
+if ('speechSynthesis' in window) {
+  window.speechSynthesis.onvoiceschanged = populateVoices;
+}
+
+loadState();
+buildGrid();
+renderCalled();
+renderHistory();
+renderVoiceToggle();
+renderSpeedBtn();
+populateVoices();
+</script>
+</body>
+</html>
